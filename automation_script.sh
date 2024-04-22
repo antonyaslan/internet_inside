@@ -13,11 +13,11 @@ if ! [ -f ./raspi-blinka.py]; then
 	wget https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/master/raspi-blinka.py
 fi
 
-sudo .env/bin/python3 raspi-blinka.py
+sudo PATH=$PATH python3 raspi-blinka.py
 dtoverlay=spi1-3cs
 pip3 install -r requirements.txt
 clear
-sudo .env/bin/python3 pyg.py
+sudo PATH=$PATH python3 pyg.py
 # Commented out since we use modified drivers
 # pip3 install circuitpython-nrf24l01
 # cd internet_inside
