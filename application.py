@@ -159,9 +159,9 @@ def tx(nrf_tx: RF24, packet: bytes):
     for frag in fragments:
         result = nrf_tx.write(frag)
         if (result):
-            print("Frag sent id: ", frag[:2])
+            print("Tx Radio --> Frag sent id: ", frag[:2])
         else:
-            print("Frag not sent: ", frag[:2])
+            print("Tx Radio --> Frag not sent: ", frag[:2])
 
 def radio_tx(nrf_tx: RF24):
     while True:
@@ -178,6 +178,7 @@ def tun_rx():
     while True:
         buffer = tun.read()
         tun_in_queue.put(buffer)
+        print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
         #if len(buffer):
         #    print("Got package from tun interface:\n\t", buffer, "\n")
         #    tx(buffer)
@@ -195,13 +196,13 @@ def radio_rx(nrf_rx:RF24):
             pSize = nrf_rx.get_payload_length(nrf_rx.pipe)
             fragment = nrf_rx.read()
             id = int.from_bytes(fragment[:2], 'big')
-            print("Frag received with id: ", id)
+            print("Rx Radio --> Frag received with id: ", id)
 
             buffer.append(fragment[2:])
 
             if id == 0xFFFF:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
-                print("Packet received:\n\t", packet, "\n")
+                print("Rx Radio --> Packet received:\n\t", packet, "\n")
                 buffer.clear()
                 tun_out_queue.put(packet)
                 #with cond_out:
@@ -216,6 +217,7 @@ def tun_tx():
         #        cond_out.wait()
         packet = tun_out_queue.get()
         tun.write(packet)
+        print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
 
 def main():
     node = int(input("Select node role. 0:Base 1:Mobile :"))
