@@ -193,8 +193,8 @@ def radio_rx(nrf_rx:RF24):
     while True:
         has_payload = nrf_rx.available()
         if has_payload:
-            pSize = nrf_rx.get_payload_length(nrf_rx.pipe)
-            fragment = nrf_rx.read()
+            packet_size = nrf_rx.get_payload_length(nrf_rx.pipe)
+            fragment = nrf_rx.read(packet_size)
             id = int.from_bytes(fragment[:2], 'big')
             print("Rx Radio --> Frag received with id: ", id)
 
