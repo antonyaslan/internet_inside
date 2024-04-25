@@ -38,7 +38,7 @@ POWER_LEVEL = -12 #DBM
 DELAY = 15 #e-15
 COUNT = 5
 DATA_RATE = 2 #MBps
-CRC_LENGTH = 8 #Bytes
+CRC_LENGTH = 16 #Bytes
 
 """ Fragments size """
 FRAG_SIZE = 30
