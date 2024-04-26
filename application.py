@@ -35,7 +35,7 @@ SPI_DEV = 0
 """ Radio Parameters """
 
 POWER_LEVEL = -12 #DBM
-DELAY = 15 #e-15
+DELAY = 250 #us
 COUNT = 5
 DATA_RATE = 2 #MBps
 CRC_LENGTH = 16 #Bytes
@@ -49,15 +49,15 @@ def setup(role) -> (RF24, RF24):
     
     if role == 1:
         """ Mobile """
-        tun.config(ip="192.168.1.2", mask="255.255.255.0")
+        tun.config(ip="125.100.1.2", mask="255.255.255.0")
 
-        command = 'ip route add 8.8.8.8 via 192.168.1.1 dev LongG'
+        command = 'ip route add 8.8.8.8 via 125.100.1.1 dev LongG'
         subprocess.run(command, shell=True)
 
 
     if role == 0:
         """ Base """
-        tun.config(ip="192.168.1.1", mask="255.255.255.0")
+        tun.config(ip="125.100.1.1", mask="255.255.255.0")
         subprocess.run('iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE', shell=True)
         command = 'sudo iptables -A FORWARD -i eth0 -o LongG -m state --state RELATED,ESTABLISHED -j ACCEPT'
         subprocess.run(command,shell=True)
@@ -102,7 +102,6 @@ def setup(role) -> (RF24, RF24):
     nrf_rx.data_rate = DATA_RATE
     nrf_tx.data_rate = DATA_RATE
 
-    """ Εnable the Dynamic Payloads """
     nrf_rx.crc = CRC_LENGTH
     nrf_tx.crc = CRC_LENGTH
 
@@ -115,6 +114,9 @@ def setup(role) -> (RF24, RF24):
 
     nrf_tx.flush_tx()
     nrf_rx.flush_rx()
+
+    nrf_rx.print_details()
+    nrf_tx.print_details()
 
     return (nrf_rx, nrf_tx)
 
@@ -137,7 +139,7 @@ def fragment(data: bytes) -> list:
     id = 1
 
     while data:
-        if (len(data) <= 30):
+        if (len(data) <= FRAG_SIZE):
             id = 65535
 
         fragments.append(id.to_bytes(2, 'big') + data[:FRAG_SIZE])
@@ -178,7 +180,7 @@ def tun_rx():
     while True:
         buffer = tun.read()
         tun_in_queue.put(buffer)
-        print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
+        #print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
         #if len(buffer):
         #    print("Got package from tun interface:\n\t", buffer, "\n")
         #    tx(buffer)
@@ -217,7 +219,7 @@ def tun_tx():
         #        cond_out.wait()
         packet = tun_out_queue.get()
         tun.write(packet)
-        print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+        #print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
 
 def main():
     node = int(input("Select node role. 0:Base 1:Mobile :"))
