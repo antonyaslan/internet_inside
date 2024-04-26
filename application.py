@@ -115,8 +115,8 @@ def setup(role) -> (RF24, RF24):
     nrf_tx.flush_tx()
     nrf_rx.flush_rx()
 
-    nrf_rx.print_details()
-    nrf_tx.print_details()
+    #nrf_rx.print_details()
+    #nrf_tx.print_details()
 
     return (nrf_rx, nrf_tx)
 
