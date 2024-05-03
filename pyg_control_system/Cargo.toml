@@ -1,0 +1,14 @@
+[package]
+name = "pyg_control_system"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+# Name of native library, used when importing library in python
+# Needs to match name of `#[pymodule]` in src/lib.rs
+name = "pyg_control_system"
+# "cdylib" necessary for library to be imported in Python 
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.21.2", features = ["extension-module"]}
