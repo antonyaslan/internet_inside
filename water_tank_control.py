@@ -2,6 +2,7 @@ from pyg_control_system import PID, control_it, get_control_signal
 from pyg_control_system import WaterTank, update_process, get_water_height, get_water_volume
 from threading import Lock, Event, Thread
 import time
+import matplotlib.pyplot as plt
 
 PROCESS_PERIOD = 1
 SAMPLING_PERIOD = 5
@@ -68,6 +69,8 @@ def status(pid: PID, water_tank: WaterTank, run_loop: Event):
     h = 0.0
     v = 0.0
 
+    measured_values = []
+
     while run_loop.is_set():
 
         start_timer = time.monotonic_ns()
@@ -82,9 +85,15 @@ def status(pid: PID, water_tank: WaterTank, run_loop: Event):
 
         print("[STATUS] Current water height: {}, current water volume: {}, current flow rate: {}".format(h, v, u))
 
+        measured_values.append(h)
         end_timer = time.monotonic_ns()
 
         time.sleep(STATUS_PERIOD - ((end_timer-start_timer)/10e9))
+
+    fig, ax = plt.subplots()
+    ax.plot(measured_values)
+    fig.savefig("measured_values.png")
+    
 
     print("[STATUS] Status thread shutting down")
 

@@ -61,13 +61,13 @@ impl PID {
                 y_old: 0.0
             },
             params: Parameters {
-                k: 4.4,
-                t_i: 0.4,
-                t_d: 0.2,
-                t_t: 10.0,
-                n: 10.0,
+                k: 4.0,
+                t_i: 0.01,
+                t_d: 0.5,
+                t_t: 1.0,
+                n: 5.0,
                 b: 1.0,
-                u_low: 8.86e-6,
+                u_low: 0.0,
                 u_high: 1.98e-5,
                 h: 5.0,
                 // Set following to 0 when instantiating, change later
@@ -116,9 +116,9 @@ impl PID {
     Update I-part and update y_old signal
     */
     fn update_state(&mut self, u:f64) -> () {
-        self.states.i = self.states.i + 
+/*         self.states.i = self.states.i + 
             self.params.bi*(self.signals.uc - self.signals.y) +
-            self.params.ar*(u - self.signals.v);
+            self.params.ar*(u - self.signals.v); */
         self.states.y_old = self.signals.y;
     }
 
