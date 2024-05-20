@@ -1,3 +1,4 @@
+from typing import Tuple
 import board
 import queue
 from digitalio import DigitalInOut
@@ -6,10 +7,8 @@ import spidev
 import subprocess
 import threading
 import time
-from tuntap import TunTap
+from tun_interface import Tun
 
-""" Define tun device """
-tun = TunTap(nic_type="Tun", nic_name="LongG")
 
 
 cond_in = threading.Condition()
@@ -47,25 +46,35 @@ FRAG_SIZE = 30
 
 FIRST_PACKET_ID = 0xFFFF
 
+TUN_IF_NAME = "LongG"
+
+MOBILE_IP = "125.100.1.2"
+BASE_IP = "125.100.1.1"
+TUN_IF_MASK = "255.255.255.0"
+
+""" Define tun device """
+tun = Tun(if_name=TUN_IF_NAME)
 
 """ Setup the two radios """
-def setup(role) -> (RF24, RF24):
+def setup(role) -> Tuple[RF24, RF24]:
     
+    tun.create()
+
     if role == 1:
         """ Mobile """
-        tun.config(ip="125.100.1.2", mask="255.255.255.0")
+        tun.setup_if(ip=MOBILE_IP, mask=TUN_IF_MASK)
 
-        command = 'ip route add 8.8.8.8 via 125.100.1.1 dev LongG'
+        command = 'ip route add default via '+BASE_IP+' dev '+TUN_IF_NAME
         subprocess.run(command, shell=True)
 
 
     if role == 0:
         """ Base """
-        tun.config(ip="125.100.1.1", mask="255.255.255.0")
+        tun.setup_if(ip=BASE_IP, mask=TUN_IF_MASK)
         subprocess.run('iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE', shell=True)
-        command = 'sudo iptables -A FORWARD -i eth0 -o LongG -m state --state RELATED,ESTABLISHED -j ACCEPT'
+        command = 'sudo iptables -A FORWARD -i eth0 -o '+TUN_IF_NAME+' -m state --state RELATED,ESTABLISHED -j ACCEPT'
         subprocess.run(command,shell=True)
-        subprocess.run('sudo iptables -A FORWARD -i LongG -o eth0 -j ACCEPT', shell=True)
+        subprocess.run('sudo iptables -A FORWARD -i '+TUN_IF_NAME+' -o eth0 -j ACCEPT', shell=True)
 
 
     """ Create SPI bus object """
@@ -164,18 +173,23 @@ def tx(nrf_tx: RF24, packet: bytes):
 
     for frag in fragments:
         result = nrf_tx.write(frag)
-        #if (result):
-            #print("Tx Radio --> Frag sent id: ", frag[:2])
-        #else:
-            #print("Tx Radio --> Frag not sent: ", frag[:2])
+        if (result):
+            print("Tx Radio --> Frag sent id: ", frag[:2])
+        else:
+            print("Tx Radio --> Frag not sent: ", frag[:2])
 
 def radio_tx(nrf_tx: RF24):
     while do_run.is_set():
         #with cond_in:
             #while not len(tun_in_queue) > 0:
                 #cond_in.wait()
-        packet = tun_in_queue.get()
-        tx(nrf_tx, packet)
+        try:
+            packet = tun_in_queue.get(timeout=3)
+            tx(nrf_tx, packet)
+            print("Radio TX --> Transmitting a package:\n\t", packet, "\n")
+        except queue.Empty:
+            print("Radio Tx --> No packets found in queue")
+
     print("Radio TX thread is shutting down")
 
 def tun_rx():
@@ -183,7 +197,7 @@ def tun_rx():
     and forwards the packet to radio writing pipe
     """
     while do_run.is_set():
-        buffer = tun.read()
+        buffer = tun.read(blocking=True,timeout=3)
         tun_in_queue.put(buffer)
         print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
         #if len(buffer):
@@ -226,10 +240,10 @@ def tun_tx():
         #        cond_out.wait()
         try:
             packet = tun_out_queue.get(timeout=3)
-            tun.write(packet)
+            tun.write(packet, blocking=True,timeout=3)
             print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
         except queue.Empty:
-            print("Tx Tun --> No packets found")
+            print("Tx Tun --> No packets found in queue")
     print("TUN TX thread is shutting down")
 
 def main():
@@ -258,11 +272,8 @@ def main():
             radio_tx_thread.join()
             tun_rx_thread.join()
             tun_tx_thread.join()
-
+        finally:
             print("[MAIN] All other threads closed, removing NAT interface and IP table/IP route rules")
-
-            # Close TUN interface
-            tun.close()
 
             # Base
             if node == 0:
@@ -275,6 +286,8 @@ def main():
             else:
                 subprocess.run('sudo ip route del 8.8.8.8 via 125.100.1.1 dev LongG', shell=True)
 
+            # Close TUN interface
+            tun.close()
             print("Main thread shutting down")
 
             break
