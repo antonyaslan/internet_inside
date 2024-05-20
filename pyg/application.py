@@ -222,9 +222,12 @@ def tun_tx():
         #with cond_out:
         #    while not len(tun_out_queue) > 0:
         #        cond_out.wait()
-        packet = tun_out_queue.get()
-        tun.write(packet)
-        print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+        try:
+            packet = tun_out_queue.get(timeout=3)
+            tun.write(packet)
+            print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+        except queue.Empty:
+            print("Tx Tun --> No packets found")
     print("TUN TX thread is shutting down")
 
 def main():
@@ -252,6 +255,7 @@ def main():
             tun_tx_thread.join()
             print("Main thread shutting down")
             time.sleep(5)
+            break
 
 if __name__ == "__main__":
     main()
