@@ -2,6 +2,8 @@
  * PID controller code based on Java implementation from:
  * "Computer Control: An Overview - Educational Version 2021"
  * written by: Björn Wittenmark, Karl Johan Åström, Karl-Erik Årzén
+ * 
+ * Customized for the water tank process, detailed in process.rs
  */
 
 use pyo3::prelude::*;
@@ -26,6 +28,7 @@ struct Parameters {
     t_t: f64,       // Reset time
     n: f64,         // Max derivative gain
     b: f64,         // Fraction of set point in proportional term
+    // [m^2 / s], volumetric flow rates
     u_low: f64,     // Low output limit
     u_high: f64,    // High output limit
     h: f64,         // Sampling period, needs to match mobile unit's h
@@ -64,9 +67,9 @@ impl PID {
                 t_t: 10.0,
                 n: 10.0,
                 b: 1.0,
-                u_low: -1.0,
-                u_high: 1.0,
-                h: 0.03,
+                u_low: 8.86e-6,
+                u_high: 1.98e-5,
+                h: 5.0,
                 // Set following to 0 when instantiating, change later
                 bi: 0.0,
                 ar: 0.0,
@@ -124,10 +127,13 @@ impl PID {
      * and returns control signal
      * Updates internal signals
      */
-    pub fn control(&mut self, uc: f64, y: f64) -> f64 {
+    pub fn control(&mut self, uc: f64, y: f64) -> () {
         let u: f64 = self.calculate_output(uc, y);
         self.update_state(u);
-        u
+    }
+
+    pub fn get_control_signal(&self) -> f64 {
+        self.signals.u
     }
 
 }
