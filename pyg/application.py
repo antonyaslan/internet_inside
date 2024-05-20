@@ -45,6 +45,8 @@ CRC_LENGTH = 16 #Bytes
 """ Fragments size """
 FRAG_SIZE = 30
 
+FIRST_PACKET_ID = 0xFFFF
+
 
 """ Setup the two radios """
 def setup(role) -> (RF24, RF24):
@@ -142,7 +144,7 @@ def fragment(data: bytes) -> list:
 
     while data:
         if (len(data) <= FRAG_SIZE):
-            id = 65535
+            id = FIRST_PACKET_ID
 
         fragments.append(id.to_bytes(2, 'big') + data[:FRAG_SIZE])
         data = data[FRAG_SIZE:]
@@ -206,7 +208,7 @@ def radio_rx(nrf_rx:RF24):
 
             buffer.append(fragment[2:])
 
-            if id == 0xFFFF:  # packet is fragmented and this is the first fragment
+            if id == FIRST_PACKET_ID:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
                 #print("Rx Radio --> Packet received:\n\t", packet, "\n")
                 buffer.clear()
@@ -248,13 +250,33 @@ def main():
         try:
             time.sleep(0.01)
         except KeyboardInterrupt:
+            # Clear run condition, making all threads shut down
             do_run.clear()
+
+            # Join all threads
             radio_rx_thread.join()
             radio_tx_thread.join()
             tun_rx_thread.join()
             tun_tx_thread.join()
+
+            print("[MAIN] All other threads closed, removing NAT interface and IP table/IP route rules")
+
+            # Close TUN interface
+            tun.close()
+
+            # Base
+            if node == 0:
+                # Remove iptable forwarding rules
+                subprocess.run('sudo iptables -D FORWARD -i eth0 -o LongG -m state --state RELATED,ESTABLISHED -j ACCEPT')
+                subprocess.run('sudo iptables -D FORWARD -i LongG -o eth0 -j ACCEPT', shell=True)
+                # Remove iptable NAT table rules
+                subprocess.run('sudo iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE', shell=True)
+            # Mobile
+            else:
+                subprocess.run('sudo ip route del 8.8.8.8 via 125.100.1.1 dev LongG', shell=True)
+
             print("Main thread shutting down")
-            time.sleep(5)
+
             break
 
 if __name__ == "__main__":
