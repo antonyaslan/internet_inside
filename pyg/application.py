@@ -18,6 +18,8 @@ tun_in_queue = queue.Queue()
 cond_out = threading.Condition()
 tun_out_queue = queue.Queue()
 
+do_run = threading.Event()
+
 """ Invalid default values for scoping """
 SPI_BUS, CSN_PIN, CE_PIN = (None, None, None)
 
@@ -166,24 +168,26 @@ def tx(nrf_tx: RF24, packet: bytes):
             #print("Tx Radio --> Frag not sent: ", frag[:2])
 
 def radio_tx(nrf_tx: RF24):
-    while True:
+    while do_run.is_set():
         #with cond_in:
             #while not len(tun_in_queue) > 0:
                 #cond_in.wait()
         packet = tun_in_queue.get()
         tx(nrf_tx, packet)
+    print("Radio TX thread is shutting down")
 
 def tun_rx():
     """ Waits for new packets from tun device
     and forwards the packet to radio writing pipe
     """
-    while True:
+    while do_run.is_set():
         buffer = tun.read()
         tun_in_queue.put(buffer)
         print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
         #if len(buffer):
         #    print("Got package from tun interface:\n\t", buffer, "\n")
         #    tx(buffer)
+    print("TUN RX thread is shutting down")
 
 def radio_rx(nrf_rx:RF24):
     """ Waits for incoming packet on reading pipe 
@@ -192,7 +196,7 @@ def radio_rx(nrf_rx:RF24):
     nrf_rx.listen = True
 
     buffer = []
-    while True:
+    while do_run.is_set():
         has_payload = nrf_rx.available()
         if has_payload:
             packet_size = nrf_rx.get_payload_length(nrf_rx.pipe)
@@ -210,16 +214,18 @@ def radio_rx(nrf_rx:RF24):
                 #with cond_out:
                 #    tun_out_queue.append(packet)
                 #    cond_out.notify()
+    print("Radio RX thread is shutting down")
     
 def tun_tx():
 
-    while True:
+    while do_run.is_set():
         #with cond_out:
         #    while not len(tun_out_queue) > 0:
         #        cond_out.wait()
         packet = tun_out_queue.get()
         tun.write(packet)
         print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+    print("TUN TX thread is shutting down")
 
 def main():
     node = int(input("Select node role. 0:Base 1:Mobile :"))
@@ -228,16 +234,24 @@ def main():
     radio_tx_thread = threading.Thread(target=radio_tx, args=(tx_radio,))
     tun_rx_thread = threading.Thread(target=tun_rx, args=())
     tun_tx_thread = threading.Thread(target=tun_tx, args=())
+    do_run.set()
     radio_rx_thread.start()
     radio_tx_thread.start()
     time.sleep(0.05)
     tun_rx_thread.start()
     tun_tx_thread.start()
-    
-    radio_rx_thread.join()
-    radio_tx_thread.join()
-    tun_rx_thread.join()
-    tun_tx_thread.join()
+
+    while True:
+        try:
+            time.sleep(0.01)
+        except KeyboardInterrupt:
+            do_run.clear()
+            radio_rx_thread.join()
+            radio_tx_thread.join()
+            tun_rx_thread.join()
+            tun_tx_thread.join()
+            print("Main thread shutting down")
+            time.sleep(5)
 
 if __name__ == "__main__":
     main()
