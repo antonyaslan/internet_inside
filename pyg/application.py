@@ -108,16 +108,16 @@ def setup(role) -> Tuple[RF24, RF24]:
     nrf_rx.pa_level = POWER_LEVEL
     nrf_tx.pa_level = POWER_LEVEL
 
-    # """ Set the number of connection retries and the the delay between each try """
-    # nrf_rx.set_auto_retries(DELAY, COUNT)
-    # nrf_tx.set_auto_retries(DELAY, COUNT)
+    """ Set the number of connection retries and the the delay between each try """
+    nrf_rx.set_auto_retries(DELAY, COUNT)
+    nrf_tx.set_auto_retries(DELAY, COUNT)
 
-    # """ Set the data_rate """
-    # nrf_rx.data_rate = DATA_RATE
-    # nrf_tx.data_rate = DATA_RATE
+    """ Set the data_rate """
+    nrf_rx.data_rate = DATA_RATE
+    nrf_tx.data_rate = DATA_RATE
 
-    # nrf_rx.crc = CRC_LENGTH
-    # nrf_tx.crc = CRC_LENGTH
+    nrf_rx.crc = CRC_LENGTH
+    nrf_tx.crc = CRC_LENGTH
 
 
     """ Αddresses needs to be in a buffer protocol object (bytearray)"""
