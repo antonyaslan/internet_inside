@@ -242,8 +242,6 @@ def radio_rx(nrf_rx:RF24):
                 #with cond_out:
                 #    tun_out_queue.append(packet)
                 #    cond_out.notify()
-        else:
-            print("Radio Rx --> No packet in RX FIFO")
     print("Radio RX thread is shutting down")
     
 def tun_tx():
