@@ -174,7 +174,7 @@ def tx(nrf_tx: RF24, packet: bytes):
 
     for frag in fragments:
         # result = nrf_tx.write(frag)
-        result = nrf_tx.send(frag, ask_no_ack=True)
+        result = nrf_tx.send(frag)
         if (result):
             print("Tx Radio --> Frag sent id: ", frag[:2])
         else:
