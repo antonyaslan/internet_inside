@@ -45,7 +45,7 @@ CRC_LENGTH = 16 #Bytes
 """ Fragments size """
 FRAG_SIZE = 30
 
-FIRST_PACKET_ID = 0xFFFF
+LAST_PACKET_ID = 0xFFFF
 
 TUN_IF_NAME = "LongG"
 
@@ -154,7 +154,7 @@ def fragment(data: bytes) -> list:
 
     while data:
         if (len(data) <= FRAG_SIZE):
-            id = FIRST_PACKET_ID
+            id = LAST_PACKET_ID
 
         fragments.append(id.to_bytes(2, 'big') + data[:FRAG_SIZE])
         data = data[FRAG_SIZE:]
@@ -234,7 +234,7 @@ def radio_rx(nrf_rx:RF24):
 
             buffer.append(fragment[2:])
 
-            if id == FIRST_PACKET_ID:  # packet is fragmented and this is the first fragment
+            if id == LAST_PACKET_ID:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
                 print("Rx Radio --> Packet received:\n\t", packet, "\n")
                 buffer.clear()
