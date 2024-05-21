@@ -7,6 +7,7 @@ import subprocess
 import threading
 import time
 from tuntap import TunTap
+from typing import Tuple
 
 """ Define tun device """
 tun = TunTap(nic_type="Tun", nic_name="LongG")
@@ -35,7 +36,7 @@ SPI_DEV = 0
 """ Radio Parameters """
 
 POWER_LEVEL = -12 #DBM
-DELAY = 250 #us
+DELAY = 15 #e-15
 COUNT = 5
 DATA_RATE = 2 #MBps
 CRC_LENGTH = 16 #Bytes
@@ -45,19 +46,19 @@ FRAG_SIZE = 30
 
 
 """ Setup the two radios """
-def setup(role) -> (RF24, RF24):
+def setup(role) -> tuple[RF24, RF24]:
     
     if role == 1:
         """ Mobile """
-        tun.config(ip="125.100.1.2", mask="255.255.255.0")
+        tun.config(ip="192.168.1.2", mask="255.255.255.0")
 
-        command = 'ip route add 8.8.8.8 via 125.100.1.1 dev LongG'
+        command = 'ip route add 8.8.8.8 via 192.168.1.1 dev LongG'
         subprocess.run(command, shell=True)
 
 
     if role == 0:
         """ Base """
-        tun.config(ip="125.100.1.1", mask="255.255.255.0")
+        tun.config(ip="192.168.1.1", mask="255.255.255.0")
         subprocess.run('iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE', shell=True)
         command = 'sudo iptables -A FORWARD -i eth0 -o LongG -m state --state RELATED,ESTABLISHED -j ACCEPT'
         subprocess.run(command,shell=True)
@@ -102,6 +103,7 @@ def setup(role) -> (RF24, RF24):
     nrf_rx.data_rate = DATA_RATE
     nrf_tx.data_rate = DATA_RATE
 
+    """ Εnable the Dynamic Payloads """
     nrf_rx.crc = CRC_LENGTH
     nrf_tx.crc = CRC_LENGTH
 
@@ -114,9 +116,6 @@ def setup(role) -> (RF24, RF24):
 
     nrf_tx.flush_tx()
     nrf_rx.flush_rx()
-
-    #nrf_rx.print_details()
-    #nrf_tx.print_details()
 
     return (nrf_rx, nrf_tx)
 
@@ -139,7 +138,7 @@ def fragment(data: bytes) -> list:
     id = 1
 
     while data:
-        if (len(data) <= FRAG_SIZE):
+        if (len(data) <= 30):
             id = 65535
 
         fragments.append(id.to_bytes(2, 'big') + data[:FRAG_SIZE])
@@ -160,10 +159,10 @@ def tx(nrf_tx: RF24, packet: bytes):
 
     for frag in fragments:
         result = nrf_tx.write(frag)
-        #if (result):
-            #print("Tx Radio --> Frag sent id: ", frag[:2])
-        #else:
-            #print("Tx Radio --> Frag not sent: ", frag[:2])
+        if (result):
+            print("Tx Radio --> Frag sent id: ", frag[:2])
+        else:
+            print("Tx Radio --> Frag not sent: ", frag[:2])
 
 def radio_tx(nrf_tx: RF24):
     while True:
@@ -179,9 +178,8 @@ def tun_rx():
     """
     while True:
         buffer = tun.read()
-        print(buffer)
         tun_in_queue.put(buffer)
-        #print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
+        print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
         #if len(buffer):
         #    print("Got package from tun interface:\n\t", buffer, "\n")
         #    tx(buffer)
@@ -199,18 +197,18 @@ def radio_rx(nrf_rx:RF24):
             packet_size = nrf_rx.get_payload_length(nrf_rx.pipe)
             fragment = nrf_rx.read(packet_size)
             id = int.from_bytes(fragment[:2], 'big')
-            #print("Rx Radio --> Frag received with id: ", id)
+            print("Rx Radio --> Frag received with id: ", id)
 
             buffer.append(fragment[2:])
 
             if id == 0xFFFF:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
-                #print("Rx Radio --> Packet received:\n\t", packet, "\n")
+                print("Rx Radio --> Packet received:\n\t", packet, "\n")
                 buffer.clear()
                 tun_out_queue.put(packet)
                 #with cond_out:
                 #    tun_out_queue.append(packet)
-                #    cond_out.notify()
+                #    cond_out.notify() 
     
 def tun_tx():
 
@@ -220,7 +218,7 @@ def tun_tx():
         #        cond_out.wait()
         packet = tun_out_queue.get()
         tun.write(packet)
-        #print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+        print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
 
 def main():
     node = int(input("Select node role. 0:Base 1:Mobile :"))
