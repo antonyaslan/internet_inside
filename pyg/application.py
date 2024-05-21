@@ -206,7 +206,7 @@ def tun_rx():
         if success:
             tun_in_queue.put(buffer)
             print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
-            logging.debug("[TUN RX] Got package from tun interface:\n\t", buffer, "\n")
+            logging.debug("[TUN RX] Got package from tun interface: {}".format(buffer))
         else:
             print("Rx Tun --> Could not read from tun interface")
             logging.debug("[TUN RX] Could not read from tun interface")
