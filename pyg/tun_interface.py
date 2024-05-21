@@ -4,6 +4,7 @@ import threading
 import math
 import subprocess
 import os
+from typing import Tuple
 
 class Tun(object):
     def __init__(self, if_name):
@@ -17,15 +18,23 @@ class Tun(object):
         self.n_mask_bits = 0
 
     def create(self):
+        """
+        Creates the TUN interface device in the file system using the name provided
+        when creating the class instance.
+        The TUN device is able to be accessed by all users and groups, and does
+        not persist.
+        """
         LINUX_IFF_TUN = 0x0001
         LINUX_IFF_NO_PI = 0x1000
         LINUX_TUNSETIFF = 0x400454CA
         TUNSETOWNER = 0x400454cc
         TUNSETGROUP = 0x400454ce
         TUNSETPERSIST = 0x400454cb
-        tun = open("/dev/net/tun", "r+b", buffering=0)
+        O_RDWR = 0x2
+        tun = os.open("/dev/net/tun", O_RDWR)
         flags = LINUX_IFF_TUN | LINUX_IFF_NO_PI
-        ifs = struct.pack("16sH22s", self.if_name, flags, b"")
+        if_name_b = self.if_name.encode() + b'\x00'*(16-len(self.if_name.encode()))
+        ifs = struct.pack("16sH22s", if_name_b, flags, b'\x00'*22)
         ioctl(tun, LINUX_TUNSETIFF, ifs)
         ioctl(tun, TUNSETOWNER, struct.pack("H", 1000))
         ioctl(tun, TUNSETGROUP, struct.pack("H", 1000))
@@ -33,10 +42,10 @@ class Tun(object):
         ioctl(tun, TUNSETPERSIST, struct.pack("B", False))
 
         self.handle = tun
-
-        return self
     
     def _calc_mask_bits(self, mask: str):
+        # Calculate the number of mask bits based on the mask provided
+        # E.g.: with a mask of 255.255.255.0, we have 24 mask bits
         masks = mask.split('.')
         maskbits = 0
         if len(masks) == 4:
@@ -49,6 +58,10 @@ class Tun(object):
         return int(maskbits)
 
     def setup_if(self, ip, mask, gateway="0.0.0.0"):
+        """
+        Sets up the TUN interface that was created with `create()`. Uses the provided
+        ip and mask, as well as an optional gateway (default gateway 0.0.0.0)
+        """
         self.ip = ip
         self.mask = mask
         self.gateway = gateway
@@ -58,22 +71,33 @@ class Tun(object):
         subprocess.run("ip addr add "+ip+"/%d"%n_mask_bits+" dev " + self.if_name, shell=True)
         subprocess.run("ip link set dev "+self.if_name+" up", shell=True)
 
-        return self
-
     def close(self):
+        """
+        Close and destroy this TUN interface.
+        """
         os.close(self.handle)
         subprocess.run("ip addr del "+self.ip+"/%d"%self.n_mask_bits+ " dev " + self.if_name, shell=True)
         subprocess.run("ip tuntap del mode tun " + self.if_name, shell=True)
 
-    def read(self, blocking=False, timeout=-1, size=1522):
-        self.read_lock.acquire(blocking=blocking, timeout=timeout)
+    def read(self, blocking=False, timeout=-1, size=1522) -> Tuple[bytes, bool]:
+        """
+        Read from this TUN interface. Can be made blocking with a timeout, to
+        block until the read lock is acquired. Otherwise if the lock is taken by
+        another thread, return immediatly without performing any reading.
+        """
+        success = self.read_lock.acquire(blocking=blocking, timeout=timeout)
         data = os.read(self.handle, size)
         self.read_lock.release()
-        return data
+        return (data, success)
 
-    def write(self, data, blocking=False, timeout=-1):
-        result = 0
-        self.write_lock.acquire(blocking=blocking, timeout=timeout)
-        result = os.write(self.handle, data)
+    def write(self, data, blocking=False, timeout=-1) -> Tuple[int, bool]:
+        """
+        Write to this TUN interface. Can be made blocking with a timeout, to
+        block until the write lock is acquired. Otherwise if the lock is taken by
+        another thread, return immediatly without performing any writing.
+        """
+        num_bytes = 0
+        success = self.write_lock.acquire(blocking=blocking, timeout=timeout)
+        num_bytes = os.write(self.handle, data)
         self.write_lock.release()
-        return result
+        return (num_bytes, success)

@@ -197,9 +197,12 @@ def tun_rx():
     and forwards the packet to radio writing pipe
     """
     while do_run.is_set():
-        buffer = tun.read(blocking=True,timeout=3)
-        tun_in_queue.put(buffer)
-        print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
+        (buffer, success) = tun.read(blocking=True,timeout=3)
+        if success:
+            tun_in_queue.put(buffer)
+            print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
+        else:
+            print("Rx Tun --> Could not read from tun interface")
         #if len(buffer):
         #    print("Got package from tun interface:\n\t", buffer, "\n")
         #    tx(buffer)
@@ -240,8 +243,11 @@ def tun_tx():
         #        cond_out.wait()
         try:
             packet = tun_out_queue.get(timeout=3)
-            tun.write(packet, blocking=True,timeout=3)
-            print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+            (num_bytes, success) = tun.write(packet, blocking=True,timeout=3)
+            if success:
+                print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+            else:
+                print("Tx Tun --> Could not write a packet to tun interface")
         except queue.Empty:
             print("Tx Tun --> No packets found in queue")
     print("TUN TX thread is shutting down")
@@ -272,13 +278,13 @@ def main():
             radio_tx_thread.join()
             tun_rx_thread.join()
             tun_tx_thread.join()
-        finally:
+
             print("[MAIN] All other threads closed, removing NAT interface and IP table/IP route rules")
 
             # Base
             if node == 0:
                 # Remove iptable forwarding rules
-                subprocess.run('sudo iptables -D FORWARD -i eth0 -o LongG -m state --state RELATED,ESTABLISHED -j ACCEPT')
+                subprocess.run('sudo iptables -D FORWARD -i eth0 -o LongG -m state --state RELATED,ESTABLISHED -j ACCEPT', shell=True)
                 subprocess.run('sudo iptables -D FORWARD -i LongG -o eth0 -j ACCEPT', shell=True)
                 # Remove iptable NAT table rules
                 subprocess.run('sudo iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE', shell=True)
