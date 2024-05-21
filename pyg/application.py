@@ -8,6 +8,7 @@ import subprocess
 import threading
 import time
 from tun_interface import Tun
+import logging
 
 
 
@@ -64,7 +65,7 @@ def setup(role) -> Tuple[RF24, RF24]:
         """ Mobile """
         tun.setup_if(ip=MOBILE_IP, mask=TUN_IF_MASK)
 
-        command = 'ip route add default via '+BASE_IP+' dev '+TUN_IF_NAME
+        command = 'ip route add 8.8.8.8 via '+BASE_IP+' dev '+TUN_IF_NAME
         subprocess.run(command, shell=True)
 
 
@@ -196,13 +197,19 @@ def tun_rx():
     """ Waits for new packets from tun device
     and forwards the packet to radio writing pipe
     """
+    logging.debug("[TUN RX] Thread starting")
     while do_run.is_set():
+        logging.debug("[TUN RX] (Re)starting loop")
+        logging.debug("[TUN RX] Attempting to read from TUN interface")
         (buffer, success) = tun.read(blocking=True,timeout=3)
+        logging.debug("[TUN RX] Attempt done")
         if success:
             tun_in_queue.put(buffer)
             print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
+            logging.debug("[TUN RX] Got package from tun interface:\n\t", buffer, "\n")
         else:
             print("Rx Tun --> Could not read from tun interface")
+            logging.debug("[TUN RX] Could not read from tun interface")
         #if len(buffer):
         #    print("Got package from tun interface:\n\t", buffer, "\n")
         #    tx(buffer)
@@ -221,13 +228,13 @@ def radio_rx(nrf_rx:RF24):
             packet_size = nrf_rx.get_payload_length(nrf_rx.pipe)
             fragment = nrf_rx.read(packet_size)
             id = int.from_bytes(fragment[:2], 'big')
-            #print("Rx Radio --> Frag received with id: ", id)
+            print("Rx Radio --> Frag received with id: ", id)
 
             buffer.append(fragment[2:])
 
             if id == FIRST_PACKET_ID:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
-                #print("Rx Radio --> Packet received:\n\t", packet, "\n")
+                print("Rx Radio --> Packet received:\n\t", packet, "\n")
                 buffer.clear()
                 tun_out_queue.put(packet)
                 #with cond_out:
@@ -253,6 +260,7 @@ def tun_tx():
     print("TUN TX thread is shutting down")
 
 def main():
+    logging.basicConfig(filename='tun_rx.log', level=logging.DEBUG) 
     node = int(input("Select node role. 0:Base 1:Mobile :"))
     rx_radio, tx_radio = setup(node)
     radio_rx_thread = threading.Thread(target=radio_rx, args=(rx_radio,))
