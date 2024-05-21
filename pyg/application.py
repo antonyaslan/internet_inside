@@ -173,7 +173,8 @@ def tx(nrf_tx: RF24, packet: bytes):
     fragments = fragment(packet)
 
     for frag in fragments:
-        result = nrf_tx.write(frag)
+        # result = nrf_tx.write(frag)
+        result = nrf_tx.send(frag, ask_no_ack=True)
         if (result):
             print("Tx Radio --> Frag sent id: ", frag[:2])
         else:
@@ -223,12 +224,13 @@ def radio_rx(nrf_rx:RF24):
 
     buffer = []
     while do_run.is_set():
-        has_payload = nrf_rx.available()
-        if has_payload:
-            packet_size = nrf_rx.get_payload_length(nrf_rx.pipe)
-            fragment = nrf_rx.read(packet_size)
+        # has_payload = nrf_rx.available()
+        if nrf_rx.available():
+            # packet_size = nrf_rx.get_payload_length(nrf_rx.pipe)
+            payload_size, pipe_number = (nrf_rx.any(), nrf_rx.pipe)
+            fragment = nrf_rx.read(payload_size)
             id = int.from_bytes(fragment[:2], 'big')
-            print("Rx Radio --> Frag received with id: ", id)
+            print("Rx Radio --> Frag received with id: {}, size: {}, pipe number: {}".format(id, payload_size, pipe_number))
 
             buffer.append(fragment[2:])
 
@@ -240,6 +242,8 @@ def radio_rx(nrf_rx:RF24):
                 #with cond_out:
                 #    tun_out_queue.append(packet)
                 #    cond_out.notify()
+        else:
+            print("Radio Rx --> No packet in RX FIFO")
     print("Radio RX thread is shutting down")
     
 def tun_tx():
