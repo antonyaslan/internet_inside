@@ -121,9 +121,11 @@ def setup(role) -> Tuple[RF24, RF24]:
 
 
     """ Αddresses needs to be in a buffer protocol object (bytearray)"""
-    address = [b"Base", b"Node"]
+    address = [b"1Base", b"2Node"]
 
     nrf_tx.open_tx_pipe(address[role])
+    nrf_tx.open_rx_pipe(1, address[not role])
+    nrf_rx.open_rx_pipe(address[role])
     nrf_rx.open_rx_pipe(1, address[not role])
 
     nrf_tx.flush_tx()
