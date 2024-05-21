@@ -125,7 +125,7 @@ def setup(role) -> Tuple[RF24, RF24]:
 
     nrf_tx.open_tx_pipe(address[role])
     nrf_tx.open_rx_pipe(1, address[not role])
-    nrf_rx.open_rx_pipe(address[role])
+    nrf_rx.open_tx_pipe(address[role])
     nrf_rx.open_rx_pipe(1, address[not role])
 
     nrf_tx.flush_tx()
