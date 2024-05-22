@@ -158,11 +158,12 @@ def tx(nrf_tx: RF24, packet: bytes):
     fragments = fragment(packet)
 
     for frag in fragments:
-        result = nrf_tx.write(frag)
-        if (result):
-            print("Tx Radio --> Frag sent id: ", frag[:2])
-        else:
-            print("Tx Radio --> Frag not sent: ", frag[:2])
+        nrf_tx.write(frag)
+        #result = nrf_tx.write(frag)
+        #if (result):
+        #    print("Tx Radio --> Frag sent id: ", frag[:2])
+        #else:
+        #    print("Tx Radio --> Frag not sent: ", frag[:2])
 
 def radio_tx(nrf_tx: RF24):
     while True:
@@ -197,13 +198,13 @@ def radio_rx(nrf_rx:RF24):
             packet_size = nrf_rx.get_payload_length(nrf_rx.pipe)
             fragment = nrf_rx.read(packet_size)
             id = int.from_bytes(fragment[:2], 'big')
-            print("Rx Radio --> Frag received with id: ", id)
+            #print("Rx Radio --> Frag received with id: ", id)
 
             buffer.append(fragment[2:])
 
             if id == 0xFFFF:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
-                print("Rx Radio --> Packet received:\n\t", packet, "\n")
+                #print("Rx Radio --> Packet received:\n\t", packet, "\n")
                 buffer.clear()
                 tun_out_queue.put(packet)
                 #with cond_out:
