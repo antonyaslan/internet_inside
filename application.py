@@ -180,7 +180,7 @@ def tun_rx():
     while True:
         buffer = tun.read()
         tun_in_queue.put(buffer)
-        print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
+        print("Rx Tun --> Got package from tun interface:\n\t",list(buffer), "\n")
         #if len(buffer):
         #    print("Got package from tun interface:\n\t", buffer, "\n")
         #    tx(buffer)
@@ -219,7 +219,7 @@ def tun_tx():
         #        cond_out.wait()
         packet = tun_out_queue.get()
         tun.write(packet)
-        print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+        print("Tx Tun --> Wrote a packet to tun interface:\n\t", list(packet), "\n")
 
 def main():
     node = int(input("Select node role. 0:Base 1:Mobile :"))
