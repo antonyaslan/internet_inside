@@ -180,7 +180,7 @@ def tun_rx():
     while True:
         buffer = tun.read()
         tun_in_queue.put(buffer)
-        print("Rx Tun --> Got package from tun interface:\n\t",list(buffer), "\n")
+        print("Rx Tun --> Got package from tun interface:\n\t",buffer, "\n")
         #if len(buffer):
         #    print("Got package from tun interface:\n\t", buffer, "\n")
         #    tx(buffer)
