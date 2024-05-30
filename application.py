@@ -46,7 +46,7 @@ FRAG_SIZE = 30
 
 
 """ Setup the two radios """
-def setup(role) -> tuple[RF24, RF24]:
+def setup(role) -> Tuple[RF24, RF24]:
     
     if role == 1:
         """ Mobile """
@@ -204,7 +204,7 @@ def radio_rx(nrf_rx:RF24):
 
             if id == 0xFFFF:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
-                #print("Rx Radio --> Packet received:\n\t", packet, "\n")
+                print("Rx Radio --> Packet received:\n\t", packet, "\n")
                 buffer.clear()
                 tun_out_queue.put(packet)
                 #with cond_out:
@@ -219,7 +219,7 @@ def tun_tx():
         #        cond_out.wait()
         packet = tun_out_queue.get()
         tun.write(packet)
-        print("Tx Tun --> Wrote a packet to tun interface:\n\t", list(packet), "\n")
+        print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
 
 def main():
     node = int(input("Select node role. 0:Base 1:Mobile :"))
