@@ -7,8 +7,6 @@ import subprocess
 import threading
 import time
 from tuntap import TunTap
-from typing import Tuple
-
 """ Define tun device """
 tun = TunTap(nic_type="Tun", nic_name="LongG")
 
@@ -46,7 +44,7 @@ FRAG_SIZE = 30
 
 
 """ Setup the two radios """
-def setup(role) -> Tuple[RF24, RF24]:
+def setup(role) -> tuple[RF24, RF24]:
     
     if role == 1:
         """ Mobile """
