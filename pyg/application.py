@@ -9,8 +9,7 @@ import threading
 import time
 from tun_interface import Tun
 import logging
-
-
+from process import Process
 
 cond_in = threading.Condition()
 tun_in_queue = queue.Queue()
@@ -19,6 +18,15 @@ cond_out = threading.Condition()
 tun_out_queue = queue.Queue()
 
 do_run = threading.Event()
+
+process = Process()
+control_signal = 0.0
+control_signal_lock = threading.Lock()
+
+""" Process parameters """
+SET_POINT = 0.02
+PROCESS_UPDATE_PERIOD = 1
+PROCESS_SAMPLE_PERIOD = 5
 
 """ Invalid default values for scoping """
 SPI_BUS, CSN_PIN, CE_PIN = (None, None, None)
@@ -109,6 +117,7 @@ def setup(role) -> Tuple[RF24, RF24]:
     nrf_tx.pa_level = POWER_LEVEL
 
     """ Set the number of connection retries and the the delay between each try """
+    """ Setting these configs makes it not work, could be worth looking into changing DELAY and COUNT? TODO"""
     # nrf_rx.set_auto_retries(DELAY, COUNT)
     # nrf_tx.set_auto_retries(DELAY, COUNT)
 
@@ -262,6 +271,14 @@ def tun_tx():
         except queue.Empty:
             print("Tx Tun --> No packets found in queue")
     print("TUN TX thread is shutting down")
+
+def process():
+    logging.debug("Water tank process thread starting")
+    while do_run.is_set():
+        start_time = time.monotonic_ns()
+        process.update_water_height()
+        logging.debug("Water tank process updated")
+        end_time = time.monotonic_ns()
 
 def main():
     logging.basicConfig(filename='tun_rx.log', level=logging.DEBUG) 
