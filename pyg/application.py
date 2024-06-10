@@ -40,7 +40,7 @@ POWER_LEVEL = -12 #DBM
 DELAY = 250 #us
 COUNT = 5
 DATA_RATE = 2 #MBps
-CRC_LENGTH = 16 #Bytes
+CRC_LENGTH = 2 #Bytes
 
 """ Fragments size """
 FRAG_SIZE = 30
@@ -109,8 +109,8 @@ def setup(role) -> Tuple[RF24, RF24]:
     nrf_tx.pa_level = POWER_LEVEL
 
     """ Set the number of connection retries and the the delay between each try """
-    nrf_rx.set_auto_retries(DELAY, COUNT)
-    nrf_tx.set_auto_retries(DELAY, COUNT)
+    # nrf_rx.set_auto_retries(DELAY, COUNT)
+    # nrf_tx.set_auto_retries(DELAY, COUNT)
 
     """ Set the data_rate """
     nrf_rx.data_rate = DATA_RATE
