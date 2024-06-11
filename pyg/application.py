@@ -287,6 +287,7 @@ def process_update():
     logging.debug("Water tank process thread starting")
     while do_run.is_set():
         start_time = time.monotonic_ns()
+        print("Process loop start")
         control_signal_lock.acquire()
         control_signal_local = control_signal
         control_signal_lock.release()
@@ -294,6 +295,7 @@ def process_update():
         process.update_water_height(control_signal_local)
         process_lock.release
         logging.debug("Water tank process updated")
+        print("Process loop end")
         end_time = time.monotonic_ns()
         time.sleep(PROCESS_UPDATE_PERIOD - ((end_time-start_time)/10e9))
 
@@ -306,6 +308,7 @@ def sampler():
     curl.setopt(curl.INTERFACE, TUN_IF_NAME)
     while do_run.is_set():
         start_time = time.monotonic_ns()
+        print("Sampling loop start")
         curl_buffer = BytesIO()
         curl.setopt(curl.WRITEDATA, curl_buffer)
         process_lock.acquire()
@@ -319,6 +322,7 @@ def sampler():
         control_signal_lock.acquire()
         control_signal = control_signal_local
         control_signal_lock.release()
+        print("Sampling loop end")
         end_time = time.monotonic_ns()
         time.sleep(PROCESS_SAMPLE_PERIOD - ((end_time-start_time)/10e9))
     
