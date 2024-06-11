@@ -203,9 +203,9 @@ def radio_tx(nrf_tx: RF24):
         try:
             packet = tun_in_queue.get(timeout=3)
             tx(nrf_tx, packet)
-            print("Radio TX --> Transmitting a package:\n\t", packet, "\n")
+            logging.debug("Radio TX --> Transmitting a package:\n\t", packet, "\n")
         except queue.Empty:
-            print("Radio Tx --> No packets found in queue")
+            logging.debug("Radio Tx --> No packets found in queue")
 
     print("Radio TX thread is shutting down")
 
@@ -245,13 +245,13 @@ def radio_rx(nrf_rx:RF24):
             payload_size, pipe_number = (nrf_rx.any(), nrf_rx.pipe)
             fragment = nrf_rx.read(payload_size)
             id = int.from_bytes(fragment[:2], 'big')
-            print("Rx Radio --> Frag received with id: {}, size: {}, pipe number: {}".format(id, payload_size, pipe_number))
+            logging.debug("Rx Radio --> Frag received with id: {}, size: {}, pipe number: {}".format(id, payload_size, pipe_number))
 
             buffer.append(fragment[2:])
 
             if id == LAST_PACKET_ID:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
-                print("Rx Radio --> Packet received:\n\t", packet, "\n")
+                logging.debug("Rx Radio --> Packet received:\n\t", packet, "\n")
                 buffer.clear()
                 tun_out_queue.put(packet)
                 #with cond_out:
@@ -268,7 +268,7 @@ def tun_tx():
         #        cond_out.wait()
         try:
             packet = tun_out_queue.get(timeout=3)
-            print("[TUN TX] Got through tun out queue")
+            print("[TUN TX] Got through tun out queue. Packet: {}".format(packet))
             (num_bytes, success) = tun.write(packet, blocking=True,timeout=3)
             print("[TUN TX] Got through tun write")
             if success:
