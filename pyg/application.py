@@ -191,9 +191,9 @@ def tx(nrf_tx: RF24, packet: bytes):
         # result = nrf_tx.write(frag)
         result = nrf_tx.send(frag)
         if (result):
-            print("Tx Radio --> Frag sent id: ", frag[:2])
+            logging.debug("Tx Radio --> Frag sent id: {}".format(frag[:2]))
         else:
-            print("Tx Radio --> Frag not sent: ", frag[:2])
+            logging.debug("Tx Radio --> Frag not sent: {}".format(frag[:2]))
 
 def radio_tx(nrf_tx: RF24):
     while do_run.is_set():
