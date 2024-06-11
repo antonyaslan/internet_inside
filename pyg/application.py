@@ -61,6 +61,9 @@ MOBILE_IP = "125.100.1.2"
 BASE_IP = "125.100.1.1"
 TUN_IF_MASK = "255.255.255.0"
 
+CONTROL_SERVER_IP = "192.168.12.46"
+CONTROL_SERVER_PORT = "8080"
+
 """ Define tun device """
 tun = Tun(if_name=TUN_IF_NAME)
 
@@ -75,6 +78,7 @@ def setup(role) -> Tuple[RF24, RF24]:
 
         command = 'ip route add 8.8.8.8 via '+BASE_IP+' dev '+TUN_IF_NAME
         subprocess.run(command, shell=True)
+        subprocess.run('ip route add ' + CONTROL_SERVER_IP + ' via ' + BASE_IP + ' dev ' + TUN_IF_NAME, shell=True)
 
 
     if role == 0:
