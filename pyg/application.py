@@ -340,7 +340,7 @@ def main():
     tun_rx_thread.start()
     tun_tx_thread.start()
     if node == 1:
-        process_thread = threading.Thread(target=process, arg=())
+        process_thread = threading.Thread(target=process, args=())
         sampling_thread = threading.Thread(target=sampler, args=())
         process_thread.start()
         sampling_thread.start()
