@@ -34,7 +34,7 @@ class RequestHandler(http.server.SimpleHTTPRequestHandler):
 
         self.send_response(200)
         self.send_header('Content-type', 'application/octet-stream')
-        self.send_header('Content-Length', sys.getsizeof(control_signal_bytes))
+        self.send_header('Content-Length', len(control_signal_bytes))
         self.end_headers()
         self.wfile.write(control_signal_bytes)
 

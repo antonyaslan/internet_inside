@@ -45,8 +45,8 @@ SPI_DEV = 0
 """ Radio Parameters """
 
 POWER_LEVEL = -12 #DBM
-DELAY = 250 #us
-COUNT = 5
+DELAY = 500 #us
+COUNT = 10 
 DATA_RATE = 2 #MBps
 CRC_LENGTH = 2 #Bytes
 
@@ -122,8 +122,8 @@ def setup(role) -> Tuple[RF24, RF24]:
 
     """ Set the number of connection retries and the the delay between each try """
     """ Setting these configs makes it not work, could be worth looking into changing DELAY and COUNT? TODO"""
-    # nrf_rx.set_auto_retries(DELAY, COUNT)
-    # nrf_tx.set_auto_retries(DELAY, COUNT)
+    nrf_rx.set_auto_retries(DELAY, COUNT)
+    nrf_tx.set_auto_retries(DELAY, COUNT)
 
     """ Set the data_rate """
     nrf_rx.data_rate = DATA_RATE
