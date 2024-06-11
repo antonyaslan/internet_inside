@@ -262,18 +262,21 @@ def radio_rx(nrf_rx:RF24):
 def tun_tx():
 
     while do_run.is_set():
+        print("[TUN TX] Loop")
         #with cond_out:
         #    while not len(tun_out_queue) > 0:
         #        cond_out.wait()
         try:
             packet = tun_out_queue.get(timeout=3)
+            print("[TUN TX] Got through tun out queue")
             (num_bytes, success) = tun.write(packet, blocking=True,timeout=3)
+            print("[TUN TX] Got through tun write")
             if success:
-                print("Tx Tun --> Wrote a packet to tun interface:\n\t", packet, "\n")
+                print("[TUN TX] Wrote a packet to tun interface:\n\t", packet, "\n")
             else:
-                print("Tx Tun --> Could not write a packet to tun interface")
+                print("[TUN TX] Could not write a packet to tun interface")
         except queue.Empty:
-            print("Tx Tun --> No packets found in queue")
+            print("[TUN TX] No packets found in queue")
     print("TUN TX thread is shutting down")
 
 def process():

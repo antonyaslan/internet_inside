@@ -8,8 +8,8 @@ from typing import Tuple
 
 class Tun(object):
     def __init__(self, if_name):
-        self.read_lock = threading.Lock()
-        self.write_lock = threading.Lock()
+        self.read_lock = threading.RLock()
+        self.write_lock = threading.RLock()
         self.if_name = if_name
         self.handle = None
         self.ip = None
@@ -85,9 +85,11 @@ class Tun(object):
         block until the read lock is acquired. Otherwise if the lock is taken by
         another thread, return immediatly without performing any reading.
         """
+        data = None 
         success = self.read_lock.acquire(blocking=blocking, timeout=timeout)
-        data = os.read(self.handle, size)
-        self.read_lock.release()
+        if success:
+            data = os.read(self.handle, size)
+            self.read_lock.release()
         return (data, success)
 
     def write(self, data, blocking=False, timeout=-1) -> Tuple[int, bool]:
@@ -98,6 +100,7 @@ class Tun(object):
         """
         num_bytes = 0
         success = self.write_lock.acquire(blocking=blocking, timeout=timeout)
-        num_bytes = os.write(self.handle, data)
-        self.write_lock.release()
+        if success:
+            num_bytes = os.write(self.handle, data)
+            self.write_lock.release()
         return (num_bytes, success)
