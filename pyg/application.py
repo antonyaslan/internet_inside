@@ -281,7 +281,7 @@ def tun_tx():
             print("[TUN TX] No packets found in queue")
     print("TUN TX thread is shutting down")
 
-def process():
+def process_update():
     global water_height
     global control_signal
     logging.debug("Water tank process thread starting")
@@ -340,7 +340,7 @@ def main():
     tun_rx_thread.start()
     tun_tx_thread.start()
     if node == 1:
-        process_thread = threading.Thread(target=process, args=())
+        process_thread = threading.Thread(target=process_update, args=())
         sampling_thread = threading.Thread(target=sampler, args=())
         process_thread.start()
         sampling_thread.start()
