@@ -98,6 +98,8 @@ class Tun(object):
         block until the write lock is acquired. Otherwise if the lock is taken by
         another thread, return immediatly without performing any writing.
         """
+        print("Data: {}".format(data))
+        print("Handle: {}".format(self.handle))
         num_bytes = 0
         success = self.write_lock.acquire(blocking=blocking, timeout=timeout)
         if success:
