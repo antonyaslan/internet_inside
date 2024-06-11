@@ -16,6 +16,10 @@ from io import BytesIO
 
 do_run = threading.Event()
 
+tun_in_queue = queue.Queue()
+tun_out_queue = queue.Queue()
+
+
 process = Process()
 water_height = 0.0
 process_lock = threading.Lock()
