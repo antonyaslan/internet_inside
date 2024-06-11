@@ -203,7 +203,7 @@ def radio_tx(nrf_tx: RF24):
         try:
             packet = tun_in_queue.get(timeout=3)
             tx(nrf_tx, packet)
-            logging.debug("Radio TX --> Transmitting a package:\n\t", packet, "\n")
+            logging.debug("Radio TX --> Transmitting a package:\n\t{}\n".format(packet))
         except queue.Empty:
             logging.debug("Radio Tx --> No packets found in queue")
 
@@ -221,7 +221,7 @@ def tun_rx():
         logging.debug("[TUN RX] Attempt done")
         if success:
             tun_in_queue.put(buffer)
-            print("Rx Tun --> Got package from tun interface:\n\t", buffer, "\n")
+            logging.debug("Rx Tun --> Got package from tun interface:\n\t{}\n".format(buffer))
             logging.debug("[TUN RX] Got package from tun interface: {}".format(buffer))
         else:
             print("Rx Tun --> Could not read from tun interface")
@@ -251,7 +251,7 @@ def radio_rx(nrf_rx:RF24):
 
             if id == LAST_PACKET_ID:  # packet is fragmented and this is the first fragment
                 packet = b''.join(buffer)
-                logging.debug("Rx Radio --> Packet received:\n\t", packet, "\n")
+                logging.debug("Rx Radio --> Packet received:\n\t{}\n".format(packet))
                 buffer.clear()
                 tun_out_queue.put(packet)
                 #with cond_out:
