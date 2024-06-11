@@ -288,12 +288,12 @@ def process_update():
     while do_run.is_set():
         start_time = time.monotonic_ns()
         print("Process loop start")
-        control_signal_lock.acquire()
+        # control_signal_lock.acquire()
         control_signal_local = control_signal
-        control_signal_lock.release()
-        process_lock.acquire()
+        # control_signal_lock.release()
+        # process_lock.acquire()
         process.update_water_height(control_signal_local)
-        process_lock.release
+        # process_lock.release
         logging.debug("Water tank process updated")
         print("Process loop end")
         end_time = time.monotonic_ns()
@@ -311,17 +311,17 @@ def sampler():
         print("Sampling loop start")
         curl_buffer = BytesIO()
         curl.setopt(curl.WRITEDATA, curl_buffer)
-        process_lock.acquire()
+        # process_lock.acquire()
         water_height = process.get_water_height()
-        process_lock.release()
+        # process_lock.release()
         height_url = url + str(water_height)
         curl.setopt(curl.URL, height_url)
         curl.perform()
         control_bytes = curl_buffer.getvalue()
         control_signal_local = struct.unpack('f', control_bytes)[0]
-        control_signal_lock.acquire()
+        # control_signal_lock.acquire()
         control_signal = control_signal_local
-        control_signal_lock.release()
+        # control_signal_lock.release()
         print("Sampling loop end")
         end_time = time.monotonic_ns()
         time.sleep(PROCESS_SAMPLE_PERIOD - ((end_time-start_time)/10e9))
