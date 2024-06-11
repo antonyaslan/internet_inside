@@ -88,7 +88,10 @@ class Tun(object):
         data = None 
         success = self.read_lock.acquire(blocking=blocking, timeout=timeout)
         if success:
-            data = os.read(self.handle, size)
+            try:
+                data = os.read(self.handle, size)
+            except:
+                pass
             self.read_lock.release()
         return (data, success)
 
@@ -103,6 +106,9 @@ class Tun(object):
         num_bytes = 0
         success = self.write_lock.acquire(blocking=blocking, timeout=timeout)
         if success:
-            num_bytes = os.write(self.handle, data)
+            try:
+                num_bytes = os.write(self.handle, data)
+            except:
+                pass
             self.write_lock.release()
         return (num_bytes, success)
