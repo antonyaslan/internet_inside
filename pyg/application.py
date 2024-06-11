@@ -10,16 +10,15 @@ import time
 from tun_interface import Tun
 import logging
 from process import Process
-
-cond_in = threading.Condition()
-tun_in_queue = queue.Queue()
-
-cond_out = threading.Condition()
-tun_out_queue = queue.Queue()
+import pycurl
+import struct
+from io import BytesIO
 
 do_run = threading.Event()
 
 process = Process()
+water_height = 0.0
+process_lock = threading.Lock()
 control_signal = 0.0
 control_signal_lock = threading.Lock()
 
@@ -121,7 +120,6 @@ def setup(role) -> Tuple[RF24, RF24]:
     nrf_tx.pa_level = POWER_LEVEL
 
     """ Set the number of connection retries and the the delay between each try """
-    """ Setting these configs makes it not work, could be worth looking into changing DELAY and COUNT? TODO"""
     nrf_rx.set_auto_retries(DELAY, COUNT)
     nrf_tx.set_auto_retries(DELAY, COUNT)
 
@@ -280,12 +278,48 @@ def tun_tx():
     print("TUN TX thread is shutting down")
 
 def process():
+    global water_height
+    global control_signal
     logging.debug("Water tank process thread starting")
     while do_run.is_set():
         start_time = time.monotonic_ns()
-        process.update_water_height()
+        control_signal_lock.acquire()
+        control_signal_local = control_signal
+        control_signal_lock.release()
+        process_lock.acquire()
+        process.update_water_height(control_signal_local)
+        process_lock.release
         logging.debug("Water tank process updated")
         end_time = time.monotonic_ns()
+        time.sleep(PROCESS_UPDATE_PERIOD - ((end_time-start_time)/10e9))
+
+def sampler():
+    global water_height
+    global control_signal
+    logging.debug("Sampling thread starting")
+    curl = pycurl.Curl()
+    url = 'http://'+CONTROL_SERVER_IP+':'+CONTROL_SERVER_PORT+'/'
+    curl.setopt(curl.INTERFACE, TUN_IF_NAME)
+    while do_run.is_set():
+        start_time = time.monotonic_ns()
+        curl_buffer = BytesIO()
+        curl.setopt(curl.WRITEDATA, curl_buffer)
+        process_lock.acquire()
+        water_height = process.get_water_height()
+        process_lock.release()
+        height_url = url + str(water_height)
+        curl.setopt(curl.URL, height_url)
+        curl.perform()
+        control_bytes = curl_buffer.getvalue()
+        control_signal_local = struct.unpack('f', control_bytes)[0]
+        control_signal_lock.acquire()
+        control_signal = control_signal_local
+        control_signal_lock.release()
+        end_time = time.monotonic_ns()
+        time.sleep(PROCESS_SAMPLE_PERIOD - ((end_time-start_time)/10e9))
+    
+    print("Sampling thread shutting down")
+    curl.close()
 
 def main():
     logging.basicConfig(filename='tun_rx.log', level=logging.DEBUG) 
@@ -301,6 +335,12 @@ def main():
     time.sleep(0.05)
     tun_rx_thread.start()
     tun_tx_thread.start()
+    if node == 1:
+        process_thread = threading.Thread(target=process, arg=())
+        sampling_thread = threading.Thread(target=sampler, args=())
+        process_thread.start()
+        sampling_thread.start()
+
 
     while True:
         try:
@@ -314,6 +354,9 @@ def main():
             radio_tx_thread.join()
             tun_rx_thread.join()
             tun_tx_thread.join()
+            if node == 1:
+                process_thread.join()
+                sampling_thread.join()
 
             print("[MAIN] All other threads closed, removing NAT interface and IP table/IP route rules")
 
