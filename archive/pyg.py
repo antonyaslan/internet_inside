@@ -13,7 +13,7 @@ from digitalio import DigitalInOut
 from threading import Thread
 from rf24 import RF24
 import spidev
-from virt_int import create_tun, destroy_tun, read_tun, write_tun
+from archive.virt_int import create_tun, destroy_tun, read_tun, write_tun
 
 # invalid default values for scoping
 SPI_BUS, CSN_PIN, CE_PIN = (None, None, None)

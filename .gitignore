@@ -161,3 +161,6 @@ cython_debug/
 
 # RaspiBlinka
 raspi-blinka.py
+
+# Generated plots
+*.png
